@@ -95,6 +95,7 @@ elif page == "Forecast Explorer":
 
     horizon = st.slider("Forecast Months Ahead", 1, 3)
 
+    # Filter historical data
     filtered = df[
         (df['Category'] == category_option) &
         (df['Region'] == region_option)
@@ -103,12 +104,14 @@ elif page == "Forecast Explorer":
     if filtered.empty:
         st.warning("No historical data available for selection.")
     else:
+        # Monthly aggregation
         monthly = filtered.groupby(
             pd.Grouper(key="Order Date", freq="ME")
         )["Sales"].sum().reset_index()
 
         last_date = monthly["Order Date"].max()
 
+        # Filter forecast data
         forecast_filtered = forecast_df[
             (forecast_df["Category"] == category_option) &
             (forecast_df["Region"] == region_option)
@@ -117,14 +120,17 @@ elif page == "Forecast Explorer":
         if forecast_filtered.empty:
             st.error("No forecast data available for selection.")
         else:
+            # Create future dates
             forecast_filtered["Order Date"] = pd.date_range(
                 start=last_date + pd.offsets.MonthEnd(1),
                 periods=len(forecast_filtered),
                 freq="ME"
             )
 
+            # Plot
             fig = go.Figure()
 
+            # Actual
             fig.add_trace(go.Scatter(
                 x=monthly["Order Date"],
                 y=monthly["Sales"],
@@ -132,6 +138,7 @@ elif page == "Forecast Explorer":
                 name="Actual History"
             ))
 
+            # Forecast
             fig.add_trace(go.Scatter(
                 x=pd.concat([monthly["Order Date"].tail(1), forecast_filtered["Order Date"]]),
                 y=pd.concat([monthly["Sales"].tail(1), forecast_filtered["Sales"]]),
@@ -149,16 +156,24 @@ elif page == "Forecast Explorer":
             st.plotly_chart(fig, use_container_width=True)
 
             # =========================
-            # METRICS
+            # METRICS (FIXED)
             # =========================
             st.subheader("📊 Model Performance")
 
-            mae = metrics_df["MAE"].iloc[0]
-            rmse = metrics_df["RMSE"].iloc[0]
+            # Convert row-based CSV → dictionary
+            metrics_dict = dict(zip(metrics_df["Metric"], metrics_df["Value"]))
 
-            col1, col2 = st.columns(2)
+            mae = metrics_dict.get("MAE", 0)
+            rmse = metrics_dict.get("RMSE", 0)
+            mape = metrics_dict.get("MAPE", None)
+
+            col1, col2, col3 = st.columns(3)
+
             col1.metric("MAE", f"{mae:,.2f}")
             col2.metric("RMSE", f"{rmse:,.2f}")
+
+            if mape is not None:
+                col3.metric("MAPE (%)", f"{mape:.2f}%")
 
 # =========================
 # PAGE 3 — ANOMALIES
