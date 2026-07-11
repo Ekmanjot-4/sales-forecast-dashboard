@@ -80,7 +80,7 @@ if page == "Sales Overview":
     st.plotly_chart(fig3, use_container_width=True)
 
 # =========================
-# PAGE 2 — FORECAST
+# PAGE 2 — FORECAST (FINAL CLEAN VERSION)
 # =========================
 elif page == "Forecast Explorer":
     st.header("🔮 Forecast Explorer")
@@ -95,55 +95,55 @@ elif page == "Forecast Explorer":
 
     horizon = st.slider("Forecast Months Ahead", 1, 3)
 
-    # Filter historical data
+    # =========================
+    # HISTORICAL DATA
+    # =========================
     filtered = df[
         (df['Category'] == category_option) &
         (df['Region'] == region_option)
     ]
 
     if filtered.empty:
-        st.warning("No historical data available for selection.")
+        st.warning("No historical data available.")
     else:
-        # Monthly aggregation
         monthly = filtered.groupby(
-            pd.Grouper(key="Order Date", freq="ME")
+            pd.Grouper(key="Order Date", freq="M")
         )["Sales"].sum().reset_index()
 
-        last_date = monthly["Order Date"].max()
-
-        # Filter forecast data
+        # =========================
+        # FORECAST DATA (CORRECT WAY)
+        # =========================
         forecast_filtered = forecast_df[
             (forecast_df["Category"] == category_option) &
             (forecast_df["Region"] == region_option)
-        ].head(horizon).copy()
+        ].copy()
+
+        forecast_filtered = forecast_filtered.sort_values("Date").head(horizon)
 
         if forecast_filtered.empty:
-            st.error("No forecast data available for selection.")
+            st.error("No forecast data available.")
         else:
-            # Create future dates
-            forecast_filtered["Order Date"] = pd.date_range(
-                start=last_date + pd.offsets.MonthEnd(1),
-                periods=len(forecast_filtered),
-                freq="ME"
-            )
-
-            # Plot
+            # =========================
+            # PLOT (CLEAN + CONNECTED)
+            # =========================
             fig = go.Figure()
 
-            # Actual
+            # Actual data
             fig.add_trace(go.Scatter(
                 x=monthly["Order Date"],
                 y=monthly["Sales"],
                 mode='lines',
-                name="Actual History"
+                name="Actual",
+                line=dict(width=3)
             ))
 
-            # Forecast
+            # Forecast data
             fig.add_trace(go.Scatter(
-                x=pd.concat([monthly["Order Date"].tail(1), forecast_filtered["Order Date"]]),
-                y=pd.concat([monthly["Sales"].tail(1), forecast_filtered["Sales"]]),
+                x=forecast_filtered["Date"],
+                y=forecast_filtered["Sales"],
                 mode='lines+markers',
-                name="Forecast"
+                name="Forecast",
+                line=dict(dash="dash")
             ))
 
             fig.update_layout(
@@ -156,11 +156,10 @@ elif page == "Forecast Explorer":
             st.plotly_chart(fig, use_container_width=True)
 
             # =========================
-            # METRICS (FIXED)
+            # METRICS
             # =========================
             st.subheader("📊 Model Performance")
 
-            # Convert row-based CSV → dictionary
             metrics_dict = dict(zip(metrics_df["Metric"], metrics_df["Value"]))
 
             mae = metrics_dict.get("MAE", 0)
