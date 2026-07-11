@@ -64,11 +64,11 @@ if page == "Sales Overview":
 
     yearly = df.groupby('Year')['Sales'].sum().reset_index()
     fig1 = px.bar(yearly, x='Year', y='Sales', title="Total Sales by Year")
-    st.plotly_chart(fig1, use_container_width=True)
+    st.plotly_chart(fig1, width="stretch")
 
     monthly = df.groupby('Month')['Sales'].sum().reset_index()
     fig2 = px.line(monthly, x='Month', y='Sales', title="Monthly Sales Trend")
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(fig2, width="stretch")
 
     region = st.selectbox("Select Region", df['Region'].unique())
     category = st.selectbox("Select Category", df['Category'].unique())
@@ -77,10 +77,10 @@ if page == "Sales Overview":
 
     fig3 = px.bar(filtered, x='Sub-Category', y='Sales',
                   title="Sales by Sub-Category")
-    st.plotly_chart(fig3, use_container_width=True)
+    st.plotly_chart(fig3, width="stretch")
 
 # =========================
-# PAGE 2 — FORECAST (FINAL CLEAN VERSION)
+# PAGE 2 — FORECAST
 # =========================
 elif page == "Forecast Explorer":
     st.header("🔮 Forecast Explorer")
@@ -95,9 +95,7 @@ elif page == "Forecast Explorer":
 
     horizon = st.slider("Forecast Months Ahead", 1, 3)
 
-    # =========================
     # HISTORICAL DATA
-    # =========================
     filtered = df[
         (df['Category'] == category_option) &
         (df['Region'] == region_option)
@@ -107,12 +105,10 @@ elif page == "Forecast Explorer":
         st.warning("No historical data available.")
     else:
         monthly = filtered.groupby(
-            pd.Grouper(key="Order Date", freq="M")
+            pd.Grouper(key="Order Date", freq="ME")
         )["Sales"].sum().reset_index()
 
-        # =========================
-        # FORECAST DATA (CORRECT WAY)
-        # =========================
+        # FORECAST DATA
         forecast_filtered = forecast_df[
             (forecast_df["Category"] == category_option) &
             (forecast_df["Region"] == region_option)
@@ -123,12 +119,8 @@ elif page == "Forecast Explorer":
         if forecast_filtered.empty:
             st.error("No forecast data available.")
         else:
-            # =========================
-            # PLOT (CLEAN + CONNECTED)
-            # =========================
             fig = go.Figure()
 
-            # Actual data
             fig.add_trace(go.Scatter(
                 x=monthly["Order Date"],
                 y=monthly["Sales"],
@@ -137,7 +129,6 @@ elif page == "Forecast Explorer":
                 line=dict(width=3)
             ))
 
-            # Forecast data
             fig.add_trace(go.Scatter(
                 x=forecast_filtered["Date"],
                 y=forecast_filtered["Sales"],
@@ -153,11 +144,9 @@ elif page == "Forecast Explorer":
                 hovermode="x unified"
             )
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
-            # =========================
             # METRICS
-            # =========================
             st.subheader("📊 Model Performance")
 
             metrics_dict = dict(zip(metrics_df["Metric"], metrics_df["Value"]))
@@ -199,10 +188,10 @@ elif page == "Anomaly Report":
         marker=dict(color="red", size=10)
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     st.subheader("📋 Detected Anomalies")
-    st.dataframe(anomaly_df, use_container_width=True)
+    st.dataframe(anomaly_df, width="stretch")
 
 # =========================
 # PAGE 4 — CLUSTERS
@@ -220,7 +209,7 @@ elif page == "Product Segments":
 
     fig.update_traces(textposition='top center')
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     cluster_mapping = {
         "Cluster 1 (High Growth)": ["Copiers"],
@@ -243,4 +232,4 @@ elif page == "Product Segments":
     cluster_table = pd.DataFrame(rows)
 
     st.subheader("📊 Sub-Category Cluster Mapping")
-    st.dataframe(cluster_table, use_container_width=True)
+    st.dataframe(cluster_table, width="stretch")
