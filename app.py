@@ -60,7 +60,7 @@ if page == "Sales Overview":
     # Total sales by year
     yearly = df.groupby('Year')['Sales'].sum().reset_index()
     fig1 = px.bar(yearly, x='Year', y='Sales', title="Total Sales by Year")
-    st.plotly_chart(fig1, use_container_width=True)
+    st.plotly_chart(fig1,width='stretch')
 
     # Monthly trend
     monthly = df.groupby('Month')['Sales'].sum().reset_index()
@@ -75,7 +75,7 @@ if page == "Sales Overview":
 
     fig3 = px.bar(filtered, x='Sub-Category', y='Sales',
                   title="Sales by Sub-Category")
-    st.plotly_chart(fig3, use_container_width=True)
+    st.plotly_chart(fig3, width='stretch')
 
 elif page == "Forecast Explorer":
     st.header("🔮 Forecast Explorer")
@@ -163,7 +163,7 @@ elif page == "Forecast Explorer":
         legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig,width='stretch')
 # =========================
 # PAGE 3 — ANOMALIES
 # =========================
@@ -197,11 +197,11 @@ elif page == "Anomaly Report":
         marker=dict(color="red", size=10)
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
     # Table
     st.subheader("📋 Detected Anomalies")
-    st.dataframe(anomaly_df, use_container_width=True)
+    st.dataframe(anomaly_df,width='stretch')
 # =========================
 # PAGE 4 — CLUSTERS
 # =========================
@@ -222,7 +222,7 @@ elif page == "Product Segments":
 
     fig.update_traces(textposition='top center')
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig,width='stretch')
 
     # =========================
     # FIXED CLUSTER MAPPING
@@ -255,4 +255,4 @@ elif page == "Product Segments":
     cluster_table = pd.DataFrame(rows)
 
     st.subheader("📊 Sub-Category Cluster Mapping")
-    st.dataframe(cluster_table, use_container_width=True)
+    st.dataframe(cluster_table,width='stretch')
