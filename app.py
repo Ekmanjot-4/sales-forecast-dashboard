@@ -81,22 +81,31 @@ elif page == "Forecast Explorer":
     st.header("🔮 Forecast Explorer")
 
     import plotly.graph_objects as go
-    from sklearn.metrics import mean_absolute_error, mean_squared_error
     import numpy as np
 
-    # Load data
-    forecast_df = pd.read_csv("forecast.csv")
-    forecast_df["Date"] = pd.to_datetime(forecast_df["Date"])
+    # 1. Load your grouped forecast data
+    try:
+        forecast_df = pd.read_csv("forecast1.csv")
+        forecast_df["Date"] = pd.to_datetime(forecast_df["Date"])
+    except FileNotFoundError:
+        st.error("⚠️ The file 'forecast1.csv' was not found. Please ensure it is in the repository folder.")
+        st.stop()
 
-    test_results = pd.read_csv("test_results.csv")
-    metrics=pd.read_csv("metrics.csv")
-
-    # Inputs
-    option = st.selectbox("Select Category", df['Category'].unique())
+    # 2. Side-by-Side Dropdown Controls
+    col1, col2 = st.columns(2)
+    with col1:
+        category_option = st.selectbox("Select Category", df['Category'].unique())
+    with col2:
+        region_option = st.selectbox("Select Region", df['Region'].unique())
+        
     horizon = st.slider("Forecast Months Ahead", 1, 3)
 
-    # Filter & aggregate
-    filtered = df[df['Category'] == option]
+    # 3. Filter & aggregate historical data by BOTH inputs
+    filtered = df[(df['Category'] == category_option) & (df['Region'] == region_option)]
+    
+    if filtered.empty:
+        st.warning(f"No historical data found for '{category_option}' in the '{region_option}' region.")
+        st.stop()
 
     monthly = filtered.groupby(
         pd.Grouper(key="Order Date", freq="ME")
@@ -104,49 +113,57 @@ elif page == "Forecast Explorer":
 
     last_date = monthly["Order Date"].max()
 
-    # Forecast prep
-    forecast_filtered = forecast_df.head(horizon).copy()
+    # 4. Filter forecast1.csv rows matching BOTH category and region selections
+    cat_region_forecast = forecast_df[
+        (forecast_df["Category"] == category_option) & 
+        (forecast_df["Region"] == region_option)
+    ].copy()
+    
+    if cat_region_forecast.empty:
+        st.error(f"⚠️ No Prophet forecast found in forecast1.csv for '{category_option}' in the '{region_option}' region.")
+        st.stop()
 
+    # Enforce user horizon slider limit
+    forecast_filtered = cat_region_forecast.head(horizon).copy()
+
+    # Align forecast timeline dates sequentially from the last historical point
     forecast_filtered["Order Date"] = pd.date_range(
         start=last_date + pd.offsets.MonthEnd(1),
-        periods=horizon,
+        periods=len(forecast_filtered),
         freq="ME"
     )
 
-    # Plot
+    # 5. Build and Plot Unified Interactive Chart
     fig = go.Figure()
 
+    # Plot actual historical curve line
     fig.add_trace(go.Scatter(
         x=monthly["Order Date"],
         y=monthly["Sales"],
         mode='lines',
-        name="Actual"
+        name="Actual History",
+        line=dict(color='#1f77b4', width=2)
     ))
 
+    # Connect historical endpoint to Prophet future horizon dynamically
     fig.add_trace(go.Scatter(
         x=pd.concat([monthly["Order Date"].tail(1), forecast_filtered["Order Date"]]),
         y=pd.concat([monthly["Sales"].tail(1), forecast_filtered["Sales"]]),
         mode='lines+markers',
-        name="Forecast",
-        line=dict(dash='dash')
+        name="Prophet Forecast",
+        line=dict(dash='dash', color='#ff7f0e', width=2),
+        marker=dict(size=6)
     ))
 
-    fig.update_layout(title=f"Sales Forecast ({option})")
+    fig.update_layout(
+        title=f"Sales Forecast — {category_option} ({region_option} Region)",
+        xaxis_title="Timeline",
+        yaxis_title="Total Sales ($)",
+        hovermode="x unified",
+        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+    )
 
     st.plotly_chart(fig, use_container_width=True)
-
-    # Metrics
-    st.subheader("📊 Model Performance")
-
-    try:
-        mae = metrics.loc[metrics["Metric"] == "MAE", "Value"].values[0]
-        rmse = metrics.loc[metrics["Metric"] == "RMSE", "Value"].values[0]
-
-        st.write(f"MAE: {mae:.2f}")
-        st.write(f"RMSE: {rmse:.2f}")
-
-    except Exception:
-        st.warning("⚠️ metrics.csv not found or invalid.")
 # =========================
 # PAGE 3 — ANOMALIES
 # =========================
