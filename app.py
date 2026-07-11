@@ -114,7 +114,7 @@ elif page == "Forecast Explorer":
             (forecast_df["Region"] == region_option)
         ].copy()
 
-        forecast_filtered = forecast_filtered.sort_values("Date").head(horizon)
+        forecast_filtered = forecast_filtered.sort_values("Date").tail(horizon)
 
         if forecast_filtered.empty:
             st.error("No forecast data available.")
